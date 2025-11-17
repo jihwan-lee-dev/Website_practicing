@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>기사용 하차 알림 모니터</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 90%;
+      max-width: 720px;
+      background: #020617;
+      border-radius: 24px;
+      padding: 28px 28px 20px;
+      border: 1px solid #1f2937;
+      box-shadow: 0 24px 40px rgba(15,23,42,0.9);
+    }
+    h1 {
+      font-size: 26px;
+      margin-bottom: 6px;
+    }
+    .sub {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-bottom: 14px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 16px;
+    }
+
+    /* 가운데 크게 뜨는 깜빡이 배너 */
+    .alert-banner {
+      display: none;
+      margin: 20px 0;
+      padding: 18px 20px;
+      border-radius: 20px;
+      text-align: center;
+      font-size: 16px;
+      background: #b91c1c;
+      color: #fee2e2;
+      border: 1px solid #fecaca;
+      box-shadow: 0 0 18px rgba(220,38,38,0.5);
+    }
+    .alert-banner.active {
+      display: block;
+      animation: flash 0.5s linear infinite;
+    }
+    @keyframes flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+    th, td {
+      border-bottom: 1px solid #1f2937;
+      padding: 10px 6px;
+      text-align: left;
+    }
+    th {
+      color: #9ca3af;
+      font-weight: 500;
+    }
+
+    .updated {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: right;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>기사용 하차 모니터</h1>
+    <p class="sub">승객 앱에서 변경 시 이 화면에 반영됩니다.</p>
+
+    <span class="badge">600번 버스 · 데모</span>
+
+    <!-- 가운데 넓게 뜨는 경고 배너 -->
+    <div id="alertBanner" class="alert-banner"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>목적지</th>
+          <th>승객 수</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td>등록된 하차 요청 없음</td><td>-</td></tr>
+      </tbody>
+    </table>
+
+    <div class="updated" id="updatedText">마지막 업데이트: 없음</div>
+  </div>
+
+<script>
+const tableBody = document.getElementById("tableBody");
+const updatedText = document.getElementById("updatedText");
+const alertBanner = document.getElementById("alertBanner");
+
+/* ★ 페이지 열릴 때마다 이전 하차정보 초기화 (데모용 리셋) */
+localStorage.removeItem("dest");
+
+let lastDest = null;
+let firstRun = true;
+
+function showBanner(message) {
+  alertBanner.textContent = message;
+  alertBanner.classList.add("active");
+
+  setTimeout(() => {
+    alertBanner.classList.remove("active");
+  }, 3000);
+}
+
+function updateTable() {
+  const dest = localStorage.getItem("dest");
+  tableBody.innerHTML = "";
+
+  if (dest) {
+    tableBody.innerHTML = `
+      <tr>
+        <td>${dest}</td>
+        <td>1명</td>
+      </tr>
+    `;
+    updatedText.textContent = "마지막 업데이트: " + new Date().toLocaleTimeString();
+  } else {
+    tableBody.innerHTML = `
+      <tr>
+        <td>등록된 하차 요청 없음</td>
+        <td>-</td>
+      </tr>
+    `;
+    if (lastDest !== null) {
+      updatedText.textContent = "마지막 업데이트: " + new Date().toLocaleTimeString();
+    } else {
+      updatedText.textContent = "마지막 업데이트: 없음";
+    }
+  }
+
+  // 첫 로딩 때는 배너 안 띄움
+  if (firstRun) {
+    lastDest = dest;
+    firstRun = false;
+    return;
+  }
+
+  if (!lastDest && dest) {
+    showBanner("새로운 하차 요청 1명이 등록되었습니다.");
+  } else if (lastDest && !dest) {
+    showBanner("하차 요청이 취소되었습니다.");
+  } else if (lastDest && dest && lastDest !== dest) {
+    showBanner("승객의 하차 목적지가 변경되었습니다.");
+  }
+
+  lastDest = dest;
+}
+
+setInterval(updateTable, 1000);
+</script>
+
+</body>
+</html>

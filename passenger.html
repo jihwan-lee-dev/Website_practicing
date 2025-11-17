@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>승객용 하차 알림 앱 데모</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #020617;
+      color: #f9fafb;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 90%;
+      max-width: 720px;
+      background: #020617;
+      border-radius: 24px;
+      padding: 28px 28px 24px;
+      border: 1px solid #1f2937;
+      box-shadow: 0 24px 40px rgba(15,23,42,0.9);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: 26px;
+      margin: 0 0 6px 0;
+    }
+    .sub {
+      font-size: 14px;
+      color: #9ca3af;
+      margin: 0 0 16px 0;
+    }
+
+    /* 언어 선택 */
+    .lang-box {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    .lang-label {
+      font-size: 11px;
+    }
+    #langSelect {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 11px;
+    }
+
+    label {
+      font-size: 14px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    select#destination {
+      width: 100%;
+      padding: 12px;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #f9fafb;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 999px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #22c55e, #06b6d4);
+      color: #020617;
+      font-weight: 600;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #4b5563;
+      color: #e5e7eb;
+    }
+    .status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #cbd5f5;
+    }
+    .status strong {
+      color: #a5b4fc;
+    }
+
+    /* 도착 전 알림 박스 */
+    #preAlert {
+      margin-top: 18px;
+      display: none;
+      background: #14532d;
+      border-radius: 18px;
+      padding: 14px 18px;
+      font-size: 15px;
+      border: 1px solid #22c55e;
+      box-shadow: 0 0 12px rgba(34,197,94,0.4);
+    }
+    #preAlert strong {
+      color: #bbf7d0;
+    }
+
+    /* 광고 박스 */
+    .ad-box {
+      margin-top: 22px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: radial-gradient(circle at top left, #1f2937, #020617);
+      border: 1px solid #334155;
+      font-size: 13px;
+    }
+    .ad-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .ad-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .ad-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h1 id="titleText">승객용 화면</h1>
+        <p class="sub" id="subText">
+          현재 탑승 중인 버스의 하차 목적지를 설정하거나 변경할 수 있습니다.
+        </p>
+      </div>
+
+      <div class="lang-box">
+        <span class="lang-label" id="langLabel">표시 언어</span>
+        <select id="langSelect">
+          <option value="ko">한국어</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="zh">中文</option>
+        </select>
+      </div>
+    </div>
+
+    <label for="destination" id="labelDest">하차할 목적지 선택</label>
+
+    <!-- value는 한국어(기사 화면용), 텍스트는 언어에 따라 변경 -->
+    <select id="destination">
+      <option value="제주공항 정류장">제주공항 정류장</option>
+      <option value="○○ 해수욕장">○○ 해수욕장</option>
+      <option value="○○ 카페">○○ 카페</option>
+      <option value="○○ 관광지">○○ 관광지</option>
+    </select>
+
+    <button class="btn-primary" id="btnRequest">하차 변경하기</button>
+    <button class="btn-secondary" id="btnCancel">하차 요청 취소</button>
+
+    <div class="status" id="statusText">
+      현재 등록된 하차 요청이 없습니다.
+    </div>
+
+    <!-- 도착 전 알림 -->
+    <div class="status" id="preAlert"></div>
+
+    <!-- 목적지별 광고 예시 -->
+    <div class="ad-box" id="adBox">
+      <div class="ad-header">
+        <div class="ad-title" id="adTitle">제주공항 정류장 주변 안내</div>
+        <div class="ad-tag" id="adTag">광고 예시</div>
+      </div>
+      <div id="adDesc">
+        공항 근처 짐 보관소, 환전소, 렌터카 픽업 존 등의 정보를 제공하여
+        도착 직후 이동을 도와주는 광고 예시입니다.
+      </div>
+    </div>
+  </div>
+
+<script>
+const destinationSelect = document.getElementById("destination");
+const statusText = document.getElementById("statusText");
+const btnRequest = document.getElementById("btnRequest");
+const btnCancel = document.getElementById("btnCancel");
+const preAlert = document.getElementById("preAlert");
+const adTitle = document.getElementById("adTitle");
+const adDesc = document.getElementById("adDesc");
+const adTag = document.getElementById("adTag");
+
+const titleText = document.getElementById("titleText");
+const subText = document.getElementById("subText");
+const labelDest = document.getElementById("labelDest");
+const langLabel = document.getElementById("langLabel");
+const langSelect = document.getElementById("langSelect");
+
+let preAlertTimer = null;
+let currentLang = "ko";
+let lastDestKey = null;          // value (항상 한국어 키)
+let hasRequest = false;
+let preAlertVisible = false;
+
+/* 목적지별 이름(언어별) + 광고 + 정거장 수
+   key 는 항상 한국어(기사화면 & localStorage용) */
+const destInfo = {
+  "제주공항 정류장": {
+    stops: 1,
+    names: {
+      ko: "제주공항 정류장",
+      en: "Jeju Airport Stop",
+      ja: "済州空港 停留所",
+      zh: "济州机场 车站"
+    },
+    ad: {
+      ko: {
+        title: "제주공항 정류장 주변 안내",
+        desc: "공항 근처 짐 보관소, 환전소, 렌터카 픽업존 정보 등 이동 편의를 위한 광고 예시입니다."
+      },
+      en: {
+        title: "Jeju Airport Area Guide",
+        desc: "Information on luggage storage, currency exchange, and rental car pickup zones near the airport."
+      },
+      ja: {
+        title: "済州空港 周辺案内",
+        desc: "空港周辺の荷物保管所、両替所、レンタカー受取所などの便利情報です。"
+      },
+      zh: {
+        title: "济州机场 附近指南",
+        desc: "提供机场附近行李寄存、兑换处、租车取车点等便利信息。"
+      }
+    }
+  },
+
+  "○○ 해수욕장": {
+    stops: 2,
+    names: {
+      ko: "○○ 해수욕장",
+      en: "○○ Beach",
+      ja: "○○ ビーチ",
+      zh: "○○ 海水浴场"
+    },
+    ad: {
+      ko: {
+        title: "○○ 해수욕장 서핑 & 선셋",
+        desc: "서핑 강습, 선셋 명소 카페, 샤워실 등 해변 편의시설 광고 예시입니다."
+      },
+      en: {
+        title: "○○ Beach Surfing & Sunset",
+        desc: "Surf lessons, sunset-view cafés, and beach facilities such as showers."
+      },
+      ja: {
+        title: "○○ ビーチ サーフィン & サンセット",
+        desc: "サーフィンレッスン、サンセットが見えるカフェ、シャワーなどのビーチ施設。"
+      },
+      zh: {
+        title: "○○ 海水浴场 冲浪 & 日落",
+        desc: "冲浪课程、观景咖啡馆以及淋浴设施等海边便利设施。"
+      }
+    }
+  },
+
+  "○○ 카페": {
+    stops: 3,
+    names: {
+      ko: "○○ 카페",
+      en: "○○ Café",
+      ja: "○○ カフェ",
+      zh: "○○ 咖啡厅"
+    },
+    ad: {
+      ko: {
+        title: "오션뷰 ○○ 카페",
+        desc: "전망 좋은 루프탑과 인기 디저트를 소개하는 광고 예시입니다."
+      },
+      en: {
+        title: "Ocean-view ○○ Café",
+        desc: "Features a scenic rooftop and popular dessert menus."
+      },
+      ja: {
+        title: "オーシャンビュー ○○ カフェ",
+        desc: "景色の良いルーフトップと人気デザートを紹介します。"
+      },
+      zh: {
+        title: "海景 ○○ 咖啡厅",
+        desc: "拥有绝佳屋顶风景和人气甜点的咖啡厅介绍。"
+      }
+    }
+  },
+
+  "○○ 관광지": {
+    stops: 4,
+    names: {
+      ko: "○○ 관광지",
+      en: "○○ Tourist Spot",
+      ja: "○○ 観光地",
+      zh: "○○ 景点"
+    },
+    ad: {
+      ko: {
+        title: "○○ 관광지 입장권 & 투어",
+        desc: "입장권 할인, 영어 가이드 투어 등 관광지 홍보 예시입니다."
+      },
+      en: {
+        title: "○○ Tourist Attraction Tickets & Tours",
+        desc: "Includes ticket discounts and English-guided tours."
+      },
+      ja: {
+        title: "○○ 観光地 チケット & ツアー",
+        desc: "割引チケットや英語ガイドツアーなどの観光案内です。"
+      },
+      zh: {
+        title: "○○ 景点 门票 & 导览",
+        desc: "包含门票优惠和英文导览服务。"
+      }
+    }
+  }
+};
+
+/* 언어별 UI 텍스트 */
+const i18n = {
+  ko: {
+    title: "승객용 화면",
+    sub: "현재 탑승 중인 버스의 하차 목적지를 설정하거나 변경할 수 있습니다.",
+    langLabel: "표시 언어",
+    labelDest: "하차할 목적지 선택",
+    btnRequest: "하차 변경하기",
+    btnCancel: "하차 요청 취소",
+    statusNone: "현재 등록된 하차 요청이 없습니다.",
+    statusSet(destName) {
+      return `하차 요청이 <strong>${destName}</strong> 으로 설정되었습니다.`;
+    },
+    preAlert(destName, stops) {
+      return `<strong>${destName}</strong>까지 <strong>${stops}정거장</strong> 남았습니다. 하차 준비를 해주세요.`;
+    },
+    adTag: "광고 예시"
+  },
+  en: {
+    title: "Passenger Screen",
+    sub: "Set or change your bus drop-off stop.",
+    langLabel: "Language",
+    labelDest: "Select your drop-off stop",
+    btnRequest: "Update drop-off stop",
+    btnCancel: "Cancel drop-off request",
+    statusNone: "No drop-off request is currently registered.",
+    statusSet(destName) {
+      return `Your drop-off stop has been set to <strong>${destName}</strong>.`;
+    },
+    preAlert(destName, stops) {
+      return `There are <strong>${stops} stops</strong> left until <strong>${destName}</strong>. Please get ready to get off.`;
+    },
+    adTag: "Ad example"
+  },
+  ja: {
+    title: "乗客用画面",
+    sub: "乗車中のバスの降車場所を設定・変更できます。",
+    langLabel: "表示言語",
+    labelDest: "降車する停留所を選択",
+    btnRequest: "降車場所を変更する",
+    btnCancel: "降車リクエストを取り消す",
+    statusNone: "登録されている降車リクエストはありません。",
+    statusSet(destName) {
+      return `降車場所が<strong>${destName}</strong>に設定されました。`;
+    },
+    preAlert(destName, stops) {
+      return `<strong>${destName}</strong>まであと<strong>${stops}駅</strong>です。降車の準備をしてください。`;
+    },
+    adTag: "広告例"
+  },
+  zh: {
+    title: "乘客界面",
+    sub: "可以设置或更改当前乘坐公交车的下车站。",
+    langLabel: "显示语言",
+    labelDest: "选择下车站",
+    btnRequest: "更改下车站",
+    btnCancel: "取消下车请求",
+    statusNone: "目前没有已登记的下车请求。",
+    statusSet(destName) {
+      return `下车站已设置为<strong>${destName}</strong>。`;
+    },
+    preAlert(destName, stops) {
+      return `距离<strong>${destName}</strong>还有<strong>${stops}站</strong>，请做好下车准备。`;
+    },
+    adTag: "广告示例"
+  }
+};
+
+/* 현재 언어 기준 목적지 이름 가져오기 */
+function getDestName(key) {
+  const info = destInfo[key];
+  return info ? info.names[currentLang] : key;
+}
+
+/* 드롭다운 옵션 텍스트도 번역 */
+function updateDestinationOptions() {
+  const options = destinationSelect.options;
+  for (const opt of options) {
+    const key = opt.value; // 항상 한국어 키
+    const info = destInfo[key];
+    if (info) {
+      opt.textContent = info.names[currentLang];
+    }
+  }
+}
+
+/* 광고 업데이트 */
+function updateAd() {
+  const key = destinationSelect.value;
+  const info = destInfo[key];
+  const ad = info.ad[currentLang];
+  adTitle.textContent = ad.title;
+  adDesc.textContent = ad.desc;
+}
+
+/* 상태 문구 적용 */
+function applyStatusText() {
+  const t = i18n[currentLang];
+  if (!hasRequest || !lastDestKey) {
+    statusText.innerHTML = t.statusNone;
+  } else {
+    const destName = getDestName(lastDestKey);
+    statusText.innerHTML = t.statusSet(destName);
+  }
+}
+
+/* 도착 전 알림 적용 */
+function applyPreAlertText() {
+  const t = i18n[currentLang];
+  if (!preAlertVisible || !lastDestKey) return;
+  const info = destInfo[lastDestKey];
+  const destName = getDestName(lastDestKey);
+  preAlert.innerHTML = t.preAlert(destName, info.stops);
+}
+
+/* 전체 UI 번역 적용 */
+function applyTranslations() {
+  const t = i18n[currentLang];
+
+  titleText.textContent = t.title;
+  subText.textContent = t.sub;
+  labelDest.textContent = t.labelDest;
+  langLabel.textContent = t.langLabel;
+  btnRequest.textContent = t.btnRequest;
+  btnCancel.textContent = t.btnCancel;
+  adTag.textContent = t.adTag;
+
+  updateDestinationOptions();
+  updateAd();
+  applyStatusText();
+  applyPreAlertText();
+}
+
+/* 하차 변경하기 */
+btnRequest.addEventListener("click", () => {
+  const key = destinationSelect.value; // 한국어 키
+  lastDestKey = key;
+  hasRequest = true;
+  preAlertVisible = false;
+
+  clearTimeout(preAlertTimer);
+  preAlert.style.display = "none";
+  preAlert.textContent = "";
+
+  // 기사 화면은 한국어로 보이도록, 한국어 키 자체를 저장
+  localStorage.setItem("dest", key);
+
+  applyStatusText();
+
+  // 데모용: 5초 후 도착 전 알림
+  preAlertTimer = setTimeout(() => {
+    preAlert.style.display = "block";
+    preAlertVisible = true;
+    applyPreAlertText();
+  }, 5000);
+});
+
+/* 취소 */
+btnCancel.addEventListener("click", () => {
+  localStorage.removeItem("dest");
+  hasRequest = false;
+  preAlertVisible = false;
+  lastDestKey = null;
+
+  clearTimeout(preAlertTimer);
+  preAlert.style.display = "none";
+  preAlert.textContent = "";
+
+  applyStatusText();
+});
+
+/* 목적지 변경 시 광고만 변경 */
+destinationSelect.addEventListener("change", () => {
+  updateAd();
+});
+
+/* 언어 변경 */
+langSelect.addEventListener("change", () => {
+  currentLang = langSelect.value;
+  applyTranslations();
+});
+
+/* 초기 세팅 */
+applyTranslations();
+</script>
+
+</body>
+</html>
